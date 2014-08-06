@@ -58,6 +58,7 @@ func info(path string) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	type BinaryHeader struct {
 		Magic                        [8]byte
@@ -81,6 +82,7 @@ func info(path string) (*Model, error) {
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
+		return nil, err
 	}
 	m := &Model{
 		Path: absPath,
