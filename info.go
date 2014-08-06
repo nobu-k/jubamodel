@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -95,4 +96,32 @@ func info(path string) (*Model, error) {
 
 	// TODO: read containers
 	return m, nil
+}
+
+func ExecInfo(args []string) {
+	if len(args) == 0 {
+		InfoUsage()
+	}
+
+	ms, err := Info(args)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	var js []byte
+	if len(ms) == 1 {
+		js, err = json.Marshal(ms[0])
+	} else { // including 0
+		js, err = json.Marshal(ms)
+	}
+	if err == nil {
+		fmt.Print(string(js))
+	}
+}
+
+func InfoUsage() {
+	fmt.Println("Usage jubamodel info file [files...]")
+	fmt.Println()
+	fmt.Println("Show information of model files")
+	os.Exit(1)
 }

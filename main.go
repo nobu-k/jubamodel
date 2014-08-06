@@ -1,29 +1,29 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("usage: jubamodel /path/to/file [/path/to/file...]")
-		os.Exit(1)
+		Usage()
 	}
 
-	ms, err := Info(os.Args[1:])
-	if err != nil {
-		os.Exit(1)
+	switch os.Args[1] {
+	case "info":
+		ExecInfo(os.Args[2:])
+	default:
+		Usage()
 	}
+}
 
-	var js []byte
-	if len(ms) == 1 {
-		js, err = json.Marshal(ms[0])
-	} else { // including 0
-		js, err = json.Marshal(ms)
-	}
-	if err == nil {
-		fmt.Print(string(js))
-	}
+func Usage() {
+	fmt.Println("Usage: jubamodel command [options...] [args...]")
+	fmt.Println()
+	fmt.Println("jubamodel: A manipulation tool for Jubatus model files")
+	fmt.Println()
+	fmt.Println("Commands:")
+	fmt.Println("    info    Show information of model files")
+	os.Exit(1)
 }
