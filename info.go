@@ -25,7 +25,16 @@ type Header struct {
 	SystemDataSize uint64 `json:"system_data_size"`
 	UserDataSize   uint64 `json:"user_data_size"`
 
-	Raw []byte `json:"-"`
+	Raw          []byte       `json:"-"`
+	BinaryHeader BinaryHeader `json:"-"`
+}
+
+type BinaryHeader struct {
+	Magic                        [8]byte
+	FormatVersion                uint64
+	Major, Minor, Maintenance    uint32
+	CRC32                        uint32
+	SystemDataSize, UserDataSize uint64
 }
 
 type SystemDataHeader struct {
@@ -60,33 +69,28 @@ func info(path string) (*Model, error) {
 	}
 	defer f.Close()
 
-	type BinaryHeader struct {
-		Magic                        [8]byte
-		FormatVersion                uint64
-		Major, Minor, Maintenance    uint32
-		CRC32                        uint32
-		SystemDataSize, UserDataSize uint64
-	}
-
-	headerBuffer := make([]byte, unsafe.Sizeof(BinaryHeader{}))
-	if n, err := f.Read(headerBuffer); err != nil {
-		return nil, err
-	} else if n < len(headerBuffer) {
-		return nil, fmt.Errorf("the file is too small")
-	}
-
-	bh := BinaryHeader{}
-	if err := binary.Read(bytes.NewReader(headerBuffer), binary.BigEndian, &bh); err != nil {
-		return nil, err
-	}
-
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
+
 	m := &Model{
 		Path: absPath,
+		Header: Header{
+			Raw: make([]byte, unsafe.Sizeof(BinaryHeader{})),
+		},
 	}
+	if n, err := f.Read(m.Header.Raw); err != nil {
+		return nil, err
+	} else if n < len(m.Header.Raw) {
+		return nil, fmt.Errorf("the file is too small")
+	}
+
+	bh := &m.Header.BinaryHeader
+	if err := binary.Read(bytes.NewReader(m.Header.Raw), binary.BigEndian, bh); err != nil {
+		return nil, err
+	}
+
 	header := &m.Header
 	header.Magic = string(bh.Magic[:])
 	header.FormatVersion = bh.FormatVersion
@@ -94,7 +98,6 @@ func info(path string) (*Model, error) {
 	header.CRC32 = bh.CRC32
 	header.SystemDataSize = bh.SystemDataSize
 	header.UserDataSize = bh.UserDataSize
-	header.Raw = headerBuffer
 
 	// TODO: read containers
 	return m, nil
